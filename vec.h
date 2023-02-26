@@ -32,6 +32,16 @@ public:
     constexpr void push_back(const T &value);
 };
 
+// constructors and deconstructor
+
+template <typename T>
+template <class Iter>
+constexpr vec<T>::vec(Iter begin, Iter end) : _size(std::distance(begin, end))
+{
+    chk_n_alloc(_size);
+    std::uninitialized_copy_n(begin, _size, _p);
+}
+
 template <typename T>
 constexpr vec<T>::vec(size_t capacity) : _size(0), _capacity(capacity)
 {
@@ -53,13 +63,7 @@ inline vec<T>::~vec()
     _alloc.deallocate(_p, _capacity);
 }
 
-template <typename T>
-template <class Iter>
-constexpr vec<T>::vec(Iter begin, Iter end) : _size(std::distance(begin, end))
-{
-    chk_n_alloc(_size);
-    std::uninitialized_copy_n(begin, _size, _p);
-}
+// public functions
 
 template <typename T>
 constexpr void vec<T>::push_back(T &&value)
@@ -80,20 +84,22 @@ constexpr void vec<T>::push_back(const T &value)
 template <typename T>
 constexpr bool vec<T>::chk_n_alloc(size_t new_size)
 {
-    bool allocated {false};
+    bool allocated{false};
 
     if (_capacity == 0 && new_size > 0)
     {
         _capacity = new_size;
         allocated = true;
     }
-    else while (new_size > _capacity)
+    else
+        while (new_size > _capacity)
         {
             _capacity *= 2;
             allocated = true;
         }
 
-    if (allocated) _p = _alloc.allocate(_capacity);
+    if (allocated)
+        _p = _alloc.allocate(_capacity);
     return allocated;
 }
 
@@ -101,11 +107,11 @@ template <typename T>
 constexpr bool vec<T>::chk_n_realloc(size_t new_size)
 {
     T *s = _p;
-    size_t o_size{_size}, o_capacity{_capacity};
+    size_t o_capacity{_capacity};
     if (chk_n_alloc(new_size))
     {
-        std::uninitialized_move_n(s, o_size, _p);
-        std::destroy_n(s, o_size);
+        std::uninitialized_move_n(s, _size, _p);
+        std::destroy_n(s, _size);
         _alloc.deallocate(s, o_capacity);
         return true;
     }
