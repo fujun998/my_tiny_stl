@@ -80,21 +80,21 @@ constexpr void vec<T>::push_back(const T &value)
 template <typename T>
 constexpr bool vec<T>::chk_n_alloc(size_t new_size)
 {
-    bool ret {false};
+    bool allocated {false};
 
     if (_capacity == 0 && new_size > 0)
     {
         _capacity = new_size;
-        ret = true;
+        allocated = true;
     }
     else while (new_size > _capacity)
         {
             _capacity *= 2;
-            ret = true;
+            allocated = true;
         }
 
-    if (ret) _p = _alloc.allocate(_capacity);
-    return ret;
+    if (allocated) _p = _alloc.allocate(_capacity);
+    return allocated;
 }
 
 template <typename T>
