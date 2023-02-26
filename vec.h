@@ -17,13 +17,13 @@ private:
 
 public:
     constexpr vec() noexcept : vec(0){};
-    constexpr explicit vec(size_t);
+    constexpr explicit vec(size_t) { chk_n_alloc(capacity); }
     template <class Iter>
     constexpr vec(Iter begin, Iter end);
     constexpr vec(std::initializer_list<T> list) : vec(list.begin(), list.end()) {}
     constexpr vec(const vec<T> &s) : vec(s._p, s._p + s._size) {}
     constexpr vec(vec<T> &&) noexcept;
-    ~vec();
+    ~vec() noexcept;
     constexpr size_t size() const noexcept { return _size; }
     constexpr size_t capacity() const noexcept { return _capacity; }
     constexpr T *begin() const noexcept { return _p; }
@@ -31,7 +31,7 @@ public:
     constexpr T &operator[](size_t n) noexcept { return _p[n]; }
     constexpr const T &operator[](size_t n) const noexcept { return _p[n]; }
     constexpr void push_back(T &&);
-    constexpr void push_back(const T &value);
+    constexpr void push_back(const T &value) { push_back(value); }
 };
 
 // constructors and deconstructor
@@ -45,12 +45,6 @@ constexpr vec<T>::vec(Iter begin, Iter end) : _size(std::distance(begin, end))
 }
 
 template <typename T>
-constexpr vec<T>::vec(size_t capacity) : _size(0), _capacity(capacity)
-{
-    chk_n_alloc(capacity);
-}
-
-template <typename T>
 constexpr vec<T>::vec(vec<T> &&s) noexcept : _p(s._p), _size(s._size), _capacity(s._capacity)
 {
     s._p = nullptr;
@@ -59,7 +53,7 @@ constexpr vec<T>::vec(vec<T> &&s) noexcept : _p(s._p), _size(s._size), _capacity
 }
 
 template <typename T>
-inline vec<T>::~vec()
+inline vec<T>::~vec() noexcept
 {
     std::destroy_n(_p, _size);
     _alloc.deallocate(_p, _capacity);
@@ -73,12 +67,6 @@ constexpr void vec<T>::push_back(T &&value)
     chk_n_realloc(_size + 1);
     _alloc.construct(_p + _size, std::forward<T>(value));
     _size++;
-}
-
-template <typename T>
-constexpr void vec<T>::push_back(const T &value)
-{
-    push_back(value);
 }
 
 // helper functions
