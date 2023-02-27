@@ -11,7 +11,7 @@ class vec
 private:
     std::allocator<T> _alloc;
     T *_p;
-    size_t _capacity, _size;
+    size_t _capacity{0}, _size{0};
     constexpr bool chk_n_alloc(size_t);
     constexpr bool chk_n_realloc(size_t);
 
@@ -29,17 +29,17 @@ public:
     constexpr size_t capacity() const noexcept { return _capacity; }
     constexpr T *begin() const noexcept { return _p; }
     constexpr T *end() const noexcept { return _p + _size; }
-    constexpr T &operator[](size_t n) noexcept { return _p[n]; }
-    constexpr const T &operator[](size_t n) const noexcept { return _p[n]; }
+    constexpr T &operator[](size_t n) const noexcept { return _p[n]; }
+    //constexpr const T &operator[](size_t n) const noexcept { return _p[n]; }
     
     constexpr void push_back(T &&);
-    constexpr void push_back(const T &value) { push_back(value); }
+    //constexpr void push_back(const T &value) { push_back(value); }
 };
 
 // constructors and deconstructor
 
 template <typename T>
-constexpr vec<T>::vec(size_t capacity) : _size(0)
+constexpr vec<T>::vec(size_t capacity)
 {
     chk_n_alloc(capacity);
 }
@@ -80,33 +80,27 @@ constexpr void vec<T>::push_back(T &&value)
 // helper functions
 
 template <typename T>
-constexpr bool vec<T>::chk_n_alloc(size_t new_size)
+constexpr bool vec<T>::chk_n_alloc(size_t new_capacity)
 {
-    bool allocated{false};
+    if(new_capacity<=_capacity)
+        return false;
 
-    if (_capacity == 0 && new_size > 0)
-    {
-        _capacity = new_size;
-        allocated = true;
-    }
+    if (_capacity == 0)
+        _capacity = new_capacity;
     else
-        while (new_size > _capacity)
-        {
+        while (new_capacity > _capacity)
             _capacity *= 2;
-            allocated = true;
-        }
 
-    if (allocated)
-        _p = _alloc.allocate(_capacity);
-    return allocated;
+    _p = _alloc.allocate(_capacity);
+    return true;
 }
 
 template <typename T>
-constexpr bool vec<T>::chk_n_realloc(size_t new_size)
+constexpr bool vec<T>::chk_n_realloc(size_t new_capacity)
 {
     T *s = _p;
     size_t o_capacity{_capacity};
-    if (chk_n_alloc(new_size))
+    if (chk_n_alloc(new_capacity))
     {
         std::uninitialized_move_n(s, _size, _p);
         std::destroy_n(s, _size);
