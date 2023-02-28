@@ -54,7 +54,7 @@ namespace tiny_stl
         constexpr void reserve(size_t);
     };
 
-    // constructors and deconstructor
+    // constructors and destructor
 
     template <typename T>
     constexpr vec<T>::vec(size_t capacity)
