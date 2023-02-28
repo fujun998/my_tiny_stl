@@ -11,8 +11,6 @@ namespace tiny_stl
         using size_t = std::size_t;
         using iterator = T *;
         using const_iterator = const T *;
-        using reference = T &;
-        using const_reference = const T &;
 
     private:
         std::allocator<T> _alloc;
@@ -36,8 +34,8 @@ namespace tiny_stl
         constexpr T *data() noexcept { return _first; }
         constexpr const T *data() const noexcept { return _first; }
 
-        constexpr reference operator[](size_t n) noexcept { return _first[n]; }
-        constexpr const_reference operator[](size_t n) const noexcept { return _first[n]; }
+        constexpr T &operator[](size_t n) noexcept { return _first[n]; }
+        constexpr const T &operator[](size_t n) const noexcept { return _first[n]; }
 
         constexpr const_iterator cbegin() const noexcept { return _first; }
         constexpr const_iterator cend() const noexcept { return _first + _size; }
