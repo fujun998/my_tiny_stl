@@ -9,34 +9,49 @@ namespace tiny_stl
     class vec
     {
         using size_t = std::size_t;
+        using iterator = T *;
+        using const_iterator = const T *;
+        using reference = T &;
+        using const_reference = const T &;
 
     private:
         std::allocator<T> _alloc;
-        T *_p{nullptr};
+        T *_first{nullptr};
         size_t _capacity{0}, _size{0};
         constexpr bool chk_n_alloc(size_t);
 
     public:
         constexpr vec() noexcept : vec(0){};
         constexpr explicit vec(size_t);
-        template <class Iter>
-        constexpr vec(Iter begin, Iter end);
+        template <class It>
+        constexpr vec(It, It);
         constexpr vec(std::initializer_list<T> list) : vec(list.begin(), list.end()) {}
-        constexpr vec(const vec<T> &s) : vec(s._p, s._p + s._size) {}
+        constexpr vec(const vec<T> &s) : vec(s._first, s._first + s._size) {}
         constexpr vec(vec<T> &&) noexcept;
         ~vec() noexcept;
 
         constexpr size_t size() const noexcept { return _size; }
         constexpr size_t capacity() const noexcept { return _capacity; }
-        constexpr T *begin() const noexcept { return _p; }
-        constexpr T *end() const noexcept { return _p + _size; }
-        constexpr T &operator[](size_t n) const noexcept { return _p[n]; }
-        //constexpr const T &operator[](size_t n) const noexcept { return _p[n]; }
-        
-        constexpr void push_back(T &&);
-        //constexpr void push_back(const T &value) { push_back(value); }
 
-        constexpr bool reserve(size_t);
+        constexpr T *data() noexcept { return _first; }
+        constexpr const T *data() const noexcept { return _first; }
+
+        constexpr reference operator[](size_t n) noexcept { return _first[n]; }
+        constexpr const_reference operator[](size_t n) const noexcept { return _first[n]; }
+
+        constexpr const_iterator cbegin() const noexcept { return _first; }
+        constexpr const_iterator cend() const noexcept { return _first + _size; }
+        constexpr const_iterator begin() const noexcept { return cbegin(); }
+        constexpr const_iterator end() const noexcept { return cend(); }
+        constexpr iterator begin() noexcept { return const_cast<iterator>(cbegin()); }
+        constexpr iterator end() noexcept { return const_cast<iterator>(cend()); }
+
+        template <typename... Args>
+        constexpr T &emplace_back(Args &&...);
+        constexpr void push_back(T &&value) { emplace_back(std::move(value)); }
+        constexpr void push_back(const T &value) { emplace_back(value); }
+
+        constexpr void reserve(size_t);
     };
 
     // constructors and deconstructor
@@ -48,17 +63,28 @@ namespace tiny_stl
     }
 
     template <typename T>
-    template <class Iter>
-    constexpr vec<T>::vec(Iter begin, Iter end) : _size(std::distance(begin, end))
+    template <class It>
+    constexpr vec<T>::vec(It first, It last)
     {
-        chk_n_alloc(_size);
-        std::uninitialized_copy_n(begin, _size, _p);
+        using category = typename std::iterator_traits<It>::iterator_category;
+        static_assert(std::is_base_of_v<std::input_iterator_tag, category>);
+        if constexpr (std::is_base_of_v<std::random_access_iterator_tag, category>)
+        {
+            _size = last - first;
+            chk_n_alloc(_size);
+            std::uninitialized_copy_n(first, _size, _first);
+        }
+        else
+        {
+            for (; first != last; ++first)
+                push_back(*first);
+        }
     }
 
     template <typename T>
-    constexpr vec<T>::vec(vec<T> &&s) noexcept : _p(s._p), _size(s._size), _capacity(s._capacity)
+    constexpr vec<T>::vec(vec<T> &&s) noexcept : _first(s._first), _size(s._size), _capacity(s._capacity)
     {
-        s._p = nullptr;
+        s._first = nullptr;
         s._size = 0;
         s._capacity = 0;
     }
@@ -66,37 +92,35 @@ namespace tiny_stl
     template <typename T>
     inline vec<T>::~vec() noexcept
     {
-        std::destroy_n(_p, _size);
-        _alloc.deallocate(_p, _capacity);
+        std::destroy_n(_first, _size);
+        _alloc.deallocate(_first, _capacity);
     }
 
     // public functions
 
     template <typename T>
-    constexpr void vec<T>::push_back(T &&value)
+    template <typename... Args>
+    constexpr T &vec<T>::emplace_back(Args &&...args)
     {
-        if(_capacity==0)
+        if (_capacity == 0)
             chk_n_alloc(1);
-        else if(_size==_capacity)
+        else if (_size == _capacity)
             reserve(_capacity * 2);
-        _alloc.construct(_p + _size, std::forward<T>(value));
-        _size++;
+        _alloc.construct(_first + _size, std::forward<Args>(args)...);
+        return _first[_size++];
     }
 
     template <typename T>
-    constexpr bool vec<T>::reserve(size_t new_capacity)
+    constexpr void vec<T>::reserve(size_t new_capacity)
     {
-        T *s = _p;
-        size_t o_capacity{_capacity};
+        T *original_first = _first;
+        size_t original_capacity{_capacity};
         if (chk_n_alloc(new_capacity))
         {
-            std::uninitialized_move_n(s, _size, _p);
-            std::destroy_n(s, _size);
-            _alloc.deallocate(s, o_capacity);
-            return true;
+            std::uninitialized_move_n(original_first, _size, _first);
+            std::destroy_n(original_first, _size);
+            _alloc.deallocate(original_first, original_capacity);
         }
-        else
-            return false;
     }
 
     // helper functions
@@ -104,11 +128,11 @@ namespace tiny_stl
     template <typename T>
     constexpr bool vec<T>::chk_n_alloc(size_t new_capacity)
     {
-        if(new_capacity<=_capacity)
+        if (new_capacity <= _capacity)
             return false;
 
         _capacity = new_capacity;
-        _p = _alloc.allocate(_capacity);
+        _first = _alloc.allocate(_capacity);
         return true;
     }
 }
