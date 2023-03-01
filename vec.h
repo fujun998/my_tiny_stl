@@ -24,7 +24,7 @@ namespace tiny_stl
         template <class It>
         constexpr vec(It, It);
         constexpr vec(std::initializer_list<T> list) : vec(list.begin(), list.end()) {}
-        constexpr vec(const vec<T> &s) : vec(s._first, s._first + s._size) {}
+        constexpr vec(const vec<T> &s) : vec(s.begin(), s.end()) {}
         constexpr vec(vec<T> &&) noexcept;
         ~vec() noexcept;
 
@@ -37,19 +37,21 @@ namespace tiny_stl
         constexpr T &operator[](size_t n) noexcept { return _first[n]; }
         constexpr const T &operator[](size_t n) const noexcept { return _first[n]; }
 
-        constexpr const_iterator cbegin() const noexcept { return _first; }
-        constexpr const_iterator cend() const noexcept { return _first + _size; }
-        constexpr const_iterator begin() const noexcept { return cbegin(); }
-        constexpr const_iterator end() const noexcept { return cend(); }
-        constexpr iterator begin() noexcept { return const_cast<iterator>(cbegin()); }
-        constexpr iterator end() noexcept { return const_cast<iterator>(cend()); }
-
         template <typename... Args>
         constexpr T &emplace_back(Args &&...);
         constexpr void push_back(T &&value) { emplace_back(std::move(value)); }
         constexpr void push_back(const T &value) { emplace_back(value); }
 
         constexpr void reserve(size_t);
+
+        // iterators
+
+        constexpr const_iterator cbegin() const noexcept { return _first; }
+        constexpr const_iterator cend() const noexcept { return _first + _size; }
+        constexpr const_iterator begin() const noexcept { return cbegin(); }
+        constexpr const_iterator end() const noexcept { return cend(); }
+        constexpr iterator begin() noexcept { return const_cast<iterator>(cbegin()); }
+        constexpr iterator end() noexcept { return const_cast<iterator>(cend()); }
     };
 
     // constructors and destructor
@@ -70,12 +72,12 @@ namespace tiny_stl
         {
             _size = last - first;
             chk_n_alloc(_size);
-            std::uninitialized_copy_n(first, _size, _first);
+            std::uninitialized_copy(first, last, _first);
         }
         else
         {
             for (; first != last; ++first)
-                push_back(*first);
+                emplace_back(*first);
         }
     }
 
