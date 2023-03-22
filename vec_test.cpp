@@ -16,7 +16,7 @@ struct foo
 
 int main()
 {
-    vector<foo> a{1};
+    vec<foo> a{1};
     a.push_back(2);
     cout<<a.emplace_back(3).x<<'\n';
 
